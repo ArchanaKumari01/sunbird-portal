@@ -2,7 +2,8 @@ import { Component, OnInit, ViewChild, OnDestroy } from '@angular/core';
 import { ActivatedRoute, RouterModule , Router } from '@angular/router';
 import { ResourceService, ToasterService, RouterNavigationService, ServerResponse } from '@sunbird/shared';
 import { UserSearchService } from './../../services';
-
+import { Subject } from 'rxjs';
+import {takeUntil} from 'rxjs/operators';
 /**
  * The delete component deletes the announcement
  * which is requested by the logged in user have announcement
@@ -56,6 +57,7 @@ export class UserDeleteComponent implements OnInit, OnDestroy {
    * To navigate back to parent component
    */
   public routerNavigationService: RouterNavigationService;
+  public unsubscribe = new Subject<void>();
 
   /**
 	 * Constructor to create injected service(s) object
@@ -87,7 +89,9 @@ export class UserDeleteComponent implements OnInit, OnDestroy {
 	 */
   deleteUser(): void {
     const option = { userId: this.userId };
-    this.userSearchService.deleteUser(option).subscribe(
+    this.userSearchService.deleteUser(option).pipe(
+      takeUntil(this.unsubscribe))
+      .subscribe(
       (apiResponse: ServerResponse) => {
         this.toasterService.success(this.resourceService.messages.smsg.m0029);
         this.redirect();
@@ -138,6 +142,8 @@ export class UserDeleteComponent implements OnInit, OnDestroy {
   }
   ngOnDestroy() {
     this.modal.deny();
+    this.unsubscribe.next();
+    this.unsubscribe.complete();
   }
 }
 

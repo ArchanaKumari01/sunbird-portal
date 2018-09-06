@@ -167,10 +167,14 @@ describe('UserProfileComponent', () => {
         expect(component.disableEndorsementButton).toEqual(false);
         expect(toasterService.error).toHaveBeenCalledWith(resourceService.messages.emsg.m0005);
     });
-
-
-
-
-
-
+    it('should unsubscribe from all observable subscriptions', () => {
+        component.ngOnInit();
+        spyOn(component.userDataSubscription, 'unsubscribe');
+        spyOn(component.unsubscribe, 'next');
+        spyOn(component.unsubscribe, 'complete');
+        component.ngOnDestroy();
+        expect(component.userDataSubscription.unsubscribe).toHaveBeenCalled();
+        expect(component.unsubscribe.next).toHaveBeenCalled();
+        expect(component.unsubscribe.complete).toHaveBeenCalled();
+      });
 });

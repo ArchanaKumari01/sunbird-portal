@@ -1,11 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subscription ,  Subject } from 'rxjs';
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { ResourceService, ToasterService, RouterNavigationService, ServerResponse, ConfigService } from '@sunbird/shared';
 import { UserSearchService } from './../../services';
 import { BadgesService, BreadcrumbsService, LearnerService, UserService } from '@sunbird/core';
 import * as _ from 'lodash';
 import { IImpressionEventInput } from '@sunbird/telemetry';
-
+import {takeUntil} from 'rxjs/operators';
 /**
  * The delete component deletes the announcement
  * which is requested by the logged in user have announcement
@@ -16,7 +17,7 @@ import { IImpressionEventInput } from '@sunbird/telemetry';
   templateUrl: './user-profile.component.html',
   styleUrls: ['./user-profile.component.css']
 })
-export class UserProfileComponent implements OnInit {
+export class UserProfileComponent implements OnInit, OnDestroy {
   /**
 	 * Contains unique announcement id
 	 */
@@ -106,6 +107,8 @@ export class UserProfileComponent implements OnInit {
 	 * telemetryImpression
 	*/
   telemetryImpression: IImpressionEventInput;
+  public unsubscribe = new Subject<void>();
+  userDataSubscription: Subscription;
   /**
   * Constructor to create injected service(s) object
   *
@@ -153,7 +156,9 @@ export class UserProfileComponent implements OnInit {
   populateUserProfile() {
     this.showLoader = true;
     const option = { userId: this.userId };
-    this.userSearchService.getUserById(option).subscribe(
+    this.userSearchService.getUserById(option).pipe(
+      takeUntil(this.unsubscribe))
+      .subscribe(
       (apiResponse: ServerResponse) => {
         this.userDetails = apiResponse.result.response;
         this.formatEndorsementList();
@@ -234,7 +239,9 @@ export class UserProfileComponent implements OnInit {
         }
       };
       this.userDetails.badgeArray = [];
-      this.badgesService.getDetailedBadgeAssertions(req, this.userDetails.badgeAssertions).subscribe((detailedAssertion) => {
+      this.badgesService.getDetailedBadgeAssertions(req, this.userDetails.badgeAssertions).pipe(
+        takeUntil(this.unsubscribe))
+        .subscribe((detailedAssertion) => {
         if (detailedAssertion) {
           this.userDetails.badgeArray.push(detailedAssertion);
         }
@@ -255,7 +262,7 @@ export class UserProfileComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.userService.userData$.subscribe(userdata => {
+    this.userDataSubscription = this.userService.userData$.subscribe(userdata => {
       if (userdata && !userdata.err) {
         this.loggedInUserId = userdata.userProfile.userId;
         this.activatedRoute.params.subscribe(params => {
@@ -293,5 +300,12 @@ export class UserProfileComponent implements OnInit {
       this.badgeViewMore = true;
       this.badgeLimit = this.defaultLimit;
     }
+  }
+  ngOnDestroy() {
+    if (this.userDataSubscription) {
+      this.userDataSubscription.unsubscribe();
+    }
+    this.unsubscribe.next();
+    this.unsubscribe.complete();
   }
 }

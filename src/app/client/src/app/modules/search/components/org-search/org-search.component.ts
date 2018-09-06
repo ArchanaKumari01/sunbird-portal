@@ -1,20 +1,20 @@
 
-import {combineLatest as observableCombineLatest,  Observable } from 'rxjs';
+import {combineLatest as observableCombineLatest,  Observable,  Subject} from 'rxjs';
 import { ServerResponse, PaginationService, ResourceService, ConfigService, ToasterService, INoResultMessage } from '@sunbird/shared';
 import { SearchService } from '@sunbird/core';
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, NgZone, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IPagination } from '@sunbird/announcement';
 import { Angular2Csv } from 'angular2-csv/Angular2-csv';
 import * as _ from 'lodash';
 import { IInteractEventObject, IInteractEventEdata, IImpressionEventInput } from '@sunbird/telemetry';
-
+import {takeUntil} from 'rxjs/operators';
 @Component({
   selector: 'app-org-search',
   templateUrl: './org-search.component.html',
   styleUrls: ['./org-search.component.css']
 })
-export class OrgSearchComponent implements OnInit {
+export class OrgSearchComponent implements OnInit, OnDestroy {
 
   /**
    * Reference of toaster service
@@ -94,6 +94,7 @@ export class OrgSearchComponent implements OnInit {
   closeIntractEdata: IInteractEventEdata;
   orgDownLoadIntractEdata: IInteractEventEdata;
   filterIntractEdata: IInteractEventEdata;
+  public unsubscribe = new Subject<void>();
   /**
 	 * telemetryImpression
 	*/
@@ -133,7 +134,9 @@ export class OrgSearchComponent implements OnInit {
       pageNumber: this.pageNumber,
       query: this.queryParams.key
     };
-    this.searchService.orgSearch(searchParams).subscribe(
+    this.searchService.orgSearch(searchParams).pipe(
+      takeUntil(this.unsubscribe))
+      .subscribe(
       (apiResponse: ServerResponse) => {
         if (apiResponse.result.response.count && apiResponse.result.response.content.length > 0) {
           this.showLoader = false;
@@ -268,5 +271,9 @@ export class OrgSearchComponent implements OnInit {
     this.telemetryImpression.edata.visits = this.inviewLogs;
     this.telemetryImpression.edata.subtype = 'pageexit';
     this.telemetryImpression = Object.assign({}, this.telemetryImpression);
+  }
+  ngOnDestroy() {
+    this.unsubscribe.next();
+    this.unsubscribe.complete();
   }
 }

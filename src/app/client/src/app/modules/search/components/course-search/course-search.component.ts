@@ -1,22 +1,22 @@
 
-import {combineLatest as observableCombineLatest,  Observable } from 'rxjs';
+import {combineLatest as observableCombineLatest,  Observable,  Subscription ,  Subject } from 'rxjs';
 import {
   ServerResponse, PaginationService, ResourceService, ConfigService, ToasterService, INoResultMessage,
   ILoaderMessage, UtilService, ICard
 } from '@sunbird/shared';
 import { SearchService, CoursesService, ICourses, SearchParam , ISort, PlayerService} from '@sunbird/core';
-import { Component, OnInit, NgZone, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, NgZone, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IPagination } from '@sunbird/announcement';
 import * as _ from 'lodash';
 import { IInteractEventObject, IInteractEventEdata, IImpressionEventInput } from '@sunbird/telemetry';
-
+import {takeUntil} from 'rxjs/operators';
 @Component({
   selector: 'app-course-search',
   templateUrl: './course-search.component.html',
   styleUrls: ['./course-search.component.css']
 })
-export class CourseSearchComponent implements OnInit {
+export class CourseSearchComponent implements OnInit, OnDestroy {
   inviewLogs: any = [];
   /**
 	 * telemetryImpression
@@ -118,6 +118,8 @@ export class CourseSearchComponent implements OnInit {
 
   public redirectUrl: string;
   sortingOptions: Array<ISort>;
+  public unsubscribe = new Subject<void>();
+  courseDataSubscription: Subscription;
 
   /**
      * Constructor to create injected service(s) object
@@ -151,7 +153,7 @@ export class CourseSearchComponent implements OnInit {
     */
   populateEnrolledCourse() {
     this.showLoader = true;
-    this.coursesService.enrolledCourseData$.subscribe(
+    this.courseDataSubscription = this.coursesService.enrolledCourseData$.subscribe(
       data => {
         if (data && !data.err) {
           if (data.enrolledCourses.length > 0) {
@@ -176,7 +178,9 @@ export class CourseSearchComponent implements OnInit {
       sort_by: {[this.queryParams.sort_by]: this.queryParams.sortType}
     };
 
-    this.searchService.courseSearch(requestParams).subscribe(
+    this.searchService.courseSearch(requestParams).pipe(
+      takeUntil(this.unsubscribe))
+      .subscribe(
       (apiResponse: ServerResponse) => {
         if (apiResponse.result.count && apiResponse.result.course) {
           this.showLoader = false;
@@ -343,5 +347,12 @@ export class CourseSearchComponent implements OnInit {
     this.telemetryImpression.edata.visits = this.inviewLogs;
     this.telemetryImpression.edata.subtype = 'pageexit';
     this.telemetryImpression = Object.assign({}, this.telemetryImpression);
+  }
+  ngOnDestroy() {
+    if (this.courseDataSubscription) {
+      this.courseDataSubscription.unsubscribe();
+    }
+    this.unsubscribe.next();
+    this.unsubscribe.complete();
   }
 }

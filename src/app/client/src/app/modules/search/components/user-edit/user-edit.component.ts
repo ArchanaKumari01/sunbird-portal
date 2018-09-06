@@ -5,7 +5,8 @@ import { UserSearchService } from './../../services';
 import * as _ from 'lodash';
 import { SearchService, UserService, PermissionService, RolesAndPermissions } from '@sunbird/core';
 import { IInteractEventObject, IInteractEventEdata, IImpressionEventInput } from '@sunbird/telemetry';
-
+import { Subject, Subscription } from 'rxjs';
+import {takeUntil} from 'rxjs/operators';
 /**
  * The delete component deletes the announcement
  * which is requested by the logged in user have announcement
@@ -64,6 +65,8 @@ export class UserEditComponent implements OnInit, OnDestroy {
   organizationIntractEdata: IInteractEventEdata;
   roleIntractEdata: IInteractEventEdata;
   updateIntractEdata: IInteractEventEdata;
+  public unsubscribe = new Subject<void>();
+  permissionSubscription: Subscription;
   /**
    * To navigate back to parent component
    */
@@ -111,7 +114,9 @@ export class UserEditComponent implements OnInit, OnDestroy {
     });
 
     // Calling Org search API
-    this.searchService.getOrganisationDetails({ orgid: orgArray }).subscribe(
+    this.searchService.getOrganisationDetails({ orgid: orgArray }).pipe(
+      takeUntil(this.unsubscribe))
+      .subscribe(
       (orgApiResponse: any) => {
         // Setting Org Name
         _.each(this.userDetails.organisations, (org) => {
@@ -128,7 +133,9 @@ export class UserEditComponent implements OnInit, OnDestroy {
     if (this.userSearchService.userDetailsObject === undefined ||
       this.userSearchService.userDetailsObject.id !== this.userId) {
       const option = { userId: this.userId };
-      this.userSearchService.getUserById(option).subscribe(
+      this.userSearchService.getUserById(option).pipe(
+        takeUntil(this.unsubscribe))
+        .subscribe(
         (apiResponse: ServerResponse) => {
           this.userDetails = apiResponse.result.response;
           this.populateOrgName();
@@ -196,7 +203,7 @@ export class UserEditComponent implements OnInit, OnDestroy {
       this.settelemetryData();
     });
     this.populateUserDetails();
-    this.permissionService.permissionAvailable$.subscribe(params => {
+    this.permissionSubscription = this.permissionService.permissionAvailable$.subscribe(params => {
       if (params === 'success') {
         this.allRoles = this.permissionService.allRoles;
       }
@@ -241,5 +248,10 @@ export class UserEditComponent implements OnInit, OnDestroy {
   }
   ngOnDestroy() {
     this.modal.deny();
+    if (this.permissionSubscription) {
+      this.permissionSubscription.unsubscribe();
+    }
+    this.unsubscribe.next();
+    this.unsubscribe.complete();
   }
 }

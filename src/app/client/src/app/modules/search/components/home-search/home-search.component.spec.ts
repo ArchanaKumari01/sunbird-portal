@@ -108,4 +108,11 @@ describe('HomeSearchComponent', () => {
     expect(component.pageLimit).toEqual(configService.appConfig.SEARCH.PAGE_LIMIT);
     expect(route.navigate).toHaveBeenCalledWith(['search/All', 3], { queryParams:  queryParams });
   });
+  it('should unsubscribe from all observable subscriptions', () => {
+    spyOn(component.unsubscribe, 'next');
+    spyOn(component.unsubscribe, 'complete');
+    component.ngOnDestroy();
+    expect(component.unsubscribe.next).toHaveBeenCalled();
+    expect(component.unsubscribe.complete).toHaveBeenCalled();
+  });
 });

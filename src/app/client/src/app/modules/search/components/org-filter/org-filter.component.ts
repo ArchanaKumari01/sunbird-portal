@@ -1,16 +1,16 @@
 import { ConfigService, ResourceService } from '@sunbird/shared';
-import { Component, OnInit, Input, Output, EventEmitter, ApplicationRef, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, ApplicationRef, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { SearchService } from '@sunbird/core';
 import { OrgTypeService } from '@sunbird/org-management';
 import * as _ from 'lodash';
-import { Observable } from 'rxjs';
+import { Observable, Subscription} from 'rxjs';
 @Component({
   selector: 'app-org-filter',
   templateUrl: './org-filter.component.html',
   styleUrls: ['./org-filter.component.css']
 })
-export class OrgFilterComponent implements OnInit {
+export class OrgFilterComponent implements OnInit, OnDestroy {
   queryParams: any;
 
   public config: ConfigService;
@@ -23,6 +23,7 @@ export class OrgFilterComponent implements OnInit {
   label: Array<string>;
   refresh = true;
   isAccordianOpen = false;
+  orgTypeSubscription: Subscription;
   /**
     * Constructor to create injected service(s) object
     Default method of Draft Component class
@@ -75,7 +76,7 @@ export class OrgFilterComponent implements OnInit {
 
   setFilters() {
     this.label = this.config.dropDownConfig.FILTER.SEARCH.Organisations.label;
-    this.orgTypeService.orgTypeData$.subscribe((apiResponse) => {
+    this.orgTypeSubscription = this.orgTypeService.orgTypeData$.subscribe((apiResponse) => {
       if (apiResponse && apiResponse.orgTypeData) {
         this.searchOrgType = apiResponse.orgTypeData.result.response;
         const OrgType = [];
@@ -110,5 +111,10 @@ export class OrgFilterComponent implements OnInit {
       });
       this.setFilters();
     });
+  }
+  ngOnDestroy() {
+    if (this.orgTypeSubscription) {
+      this.orgTypeSubscription.unsubscribe();
+    }
   }
 }

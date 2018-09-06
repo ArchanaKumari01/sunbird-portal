@@ -160,6 +160,13 @@ describe('UserSearchComponent', () => {
     expect(component.populateUserSearch).toHaveBeenCalled();
     expect(component.pageNumber).toEqual(1);
   });
+  it('should unsubscribe from all observable subscriptions', () => {
+    spyOn(component.unsubscribe, 'next');
+    spyOn(component.unsubscribe, 'complete');
+    component.ngOnDestroy();
+    expect(component.unsubscribe.next).toHaveBeenCalled();
+    expect(component.unsubscribe.complete).toHaveBeenCalled();
+  });
 });
 
 
