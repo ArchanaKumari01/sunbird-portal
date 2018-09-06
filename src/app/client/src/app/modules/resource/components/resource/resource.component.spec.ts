@@ -122,4 +122,11 @@ describe('ResourceComponent', () => {
     expect(component.prepareVisits).toHaveBeenCalled();
     expect(component.inviewLogs).toBeDefined();
   });
+  it('should unsubscribe from all observable subscriptions', () => {
+    spyOn(component.unsubscribe, 'next');
+    spyOn(component.unsubscribe, 'complete');
+    component.ngOnDestroy();
+    expect(component.unsubscribe.next).toHaveBeenCalled();
+    expect(component.unsubscribe.complete).toHaveBeenCalled();
+  });
 });

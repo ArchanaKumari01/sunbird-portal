@@ -1,7 +1,8 @@
 
-import {combineLatest as observableCombineLatest,  Observable } from 'rxjs';
+import {combineLatest as observableCombineLatest,  Observable, Subject } from 'rxjs';
+import {takeUntil} from 'rxjs/operators';
 import { PageApiService, PlayerService, ISort } from '@sunbird/core';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy} from '@angular/core';
 import { ResourceService, ServerResponse, ToasterService, INoResultMessage, ConfigService, UtilService} from '@sunbird/shared';
 import { ICaraouselData, IAction } from '@sunbird/shared';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -18,7 +19,7 @@ import { IInteractEventObject, IInteractEventEdata, IImpressionEventInput } from
   templateUrl: './resource.component.html',
   styleUrls: ['./resource.component.css']
 })
-export class ResourceComponent implements OnInit {
+export class ResourceComponent implements OnInit, OnDestroy {
   /**
   * inviewLogs
   */
@@ -65,6 +66,7 @@ export class ResourceComponent implements OnInit {
   public queryParams: any;
   private router: Router;
   public redirectUrl: string;
+  public unsubscribe = new Subject<void>();
   sortingOptions: Array<ISort>;
   contents: any;
   /**
@@ -96,7 +98,8 @@ export class ResourceComponent implements OnInit {
       filters: _.pickBy(this.filters, value => value.length > 0),
       sort_by: {[this.queryParams.sort_by]: this.queryParams.sortType  }
     };
-    this.pageSectionService.getPageData(option).subscribe(
+    this.pageSectionService.getPageData(option).pipe(
+      takeUntil(this.unsubscribe)).subscribe(
       (apiResponse) => {
         if (apiResponse && apiResponse.sections ) {
           let noResultCounter = 0;
@@ -209,5 +212,9 @@ export class ResourceComponent implements OnInit {
   }
   playContent(event) {
     this.playerService.playContent(event.data.metaData);
+  }
+  ngOnDestroy() {
+    this.unsubscribe.next();
+    this.unsubscribe.complete();
   }
 }

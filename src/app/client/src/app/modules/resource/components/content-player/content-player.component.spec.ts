@@ -143,4 +143,11 @@ describe('ContentPlayerComponent', () => {
     expect(component.showError).toBeTruthy();
     expect(component.errorMessage).toBe(resourceService.messages.stmsg.m0009);
   });
+  it('should unsubscribe from all observable subscriptions', () => {
+    spyOn(component.unsubscribe, 'next');
+    spyOn(component.unsubscribe, 'complete');
+    component.ngOnDestroy();
+    expect(component.unsubscribe.next).toHaveBeenCalled();
+    expect(component.unsubscribe.complete).toHaveBeenCalled();
+  });
 });

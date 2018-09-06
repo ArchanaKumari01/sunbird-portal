@@ -1,5 +1,5 @@
 import { ActivatedRoute } from '@angular/router';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { UserService, PlayerService, CopyContentService, PermissionService, BreadcrumbsService } from '@sunbird/core';
 import * as _ from 'lodash';
@@ -9,7 +9,8 @@ import {
   PlayerConfig, ContentData, ContentUtilsServiceService, ITelemetryShare
 } from '@sunbird/shared';
 import { IInteractEventObject, IInteractEventEdata, IImpressionEventInput } from '@sunbird/telemetry';
-
+import {Subject } from 'rxjs';
+import {takeUntil} from 'rxjs/operators';
 /**
  *Component to play content
  */
@@ -18,7 +19,7 @@ import { IInteractEventObject, IInteractEventEdata, IImpressionEventInput } from
   templateUrl: './content-player.component.html',
   styleUrls: ['./content-player.component.css']
 })
-export class ContentPlayerComponent implements OnInit {
+export class ContentPlayerComponent implements OnInit, OnDestroy {
   /**
 	 * telemetryImpression
 	*/
@@ -81,6 +82,7 @@ export class ContentPlayerComponent implements OnInit {
   showExtContentMsg = false;
 
   closeUrl: any;
+  public unsubscribe = new Subject<void>();
   constructor(public activatedRoute: ActivatedRoute, public navigationHelperService: NavigationHelperService,
     public userService: UserService, public resourceService: ResourceService, public router: Router,
     public toasterService: ToasterService, public windowScrollService: WindowScrollService, public playerService: PlayerService,
@@ -140,7 +142,9 @@ export class ContentPlayerComponent implements OnInit {
     if (this.contentStatus && this.contentStatus === 'Unlisted') {
       option.params = { mode: 'edit' };
     }
-    this.playerService.getContent(this.contentId, option).subscribe(
+    this.playerService.getContent(this.contentId, option).pipe(
+      takeUntil(this.unsubscribe))
+      .subscribe(
       (response) => {
         if (response.result.content.status === 'Live' || response.result.content.status === 'Unlisted') {
           const contentDetails = {
@@ -191,7 +195,9 @@ export class ContentPlayerComponent implements OnInit {
    */
   copyContent(contentData: ContentData) {
     this.showCopyLoader = true;
-    this.copyContentService.copyContent(contentData).subscribe(
+    this.copyContentService.copyContent(contentData).pipe(
+      takeUntil(this.unsubscribe))
+      .subscribe(
       (response) => {
         this.toasterService.success(this.resourceService.messages.smsg.m0042);
         this.showCopyLoader = false;
@@ -214,5 +220,9 @@ export class ContentPlayerComponent implements OnInit {
       type: param.contentType,
       ver: param.pkgVersion ? param.pkgVersion.toString() : '1.0'
     }];
+  }
+  ngOnDestroy() {
+    this.unsubscribe.next();
+    this.unsubscribe.complete();
   }
 }
