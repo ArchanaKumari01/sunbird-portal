@@ -28,7 +28,7 @@ export class ProfileFrameworkPopupComponent implements OnInit, OnDestroy {
   public subject: object = {};
   public categoryMasterList: any = {};
   private formAction = 'update';
-  public selectedOption: object = {};
+  public selectedOption: any = {};
   public showButton = false;
   public unsubscribe = new Subject<void>();
   userSubscription: Subscription;
@@ -85,6 +85,7 @@ export class ProfileFrameworkPopupComponent implements OnInit, OnDestroy {
       this.formInput.board = _.split(_.get(this.formInput, 'board')[0]);
     }
     this.selectedOption = _.cloneDeep(this.formInput);
+    this.selectedOption.board = _.get(this.selectedOption, 'board[0]') ? _.get(this.selectedOption, 'board[0]') : undefined;
     this.onChange();
   }
 
@@ -100,6 +101,7 @@ export class ProfileFrameworkPopupComponent implements OnInit, OnDestroy {
   }
 
   onSubmitForm() {
+    this.selectedOption.board = [this.selectedOption.board];
     this.submit.emit(this.selectedOption);
   }
 
